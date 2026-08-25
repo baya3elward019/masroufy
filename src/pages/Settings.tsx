@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Sun, Moon, Monitor, Download, RotateCcw, TrendingUp, Tag, ChevronLeft } from "lucide-react";
+import { Sun, Moon, Monitor, Download, RotateCcw, TrendingUp, Tag, ChevronLeft, FileSpreadsheet } from "lucide-react";
 import { Expense, View } from "../types";
-import { exportToCSV } from "../utils";
+import { exportToCSV, exportToExcel } from "../utils";
 import { Category, PaymentMethod } from "../types";
 
 export function SettingsPage({
@@ -80,13 +80,21 @@ export function SettingsPage({
 
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
         <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">تصدير البيانات</h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">تصدير كل مصروفاتك كملف CSV يمكن فتحه في Excel.</p>
-        <button
-          onClick={() => exportToCSV(expenses, (id) => catMap[id]?.name || id, (id) => pmMap[id]?.name || id)}
-          className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold px-4 py-2.5 rounded-xl"
-        >
-          <Download size={16} /> تصدير كل المصروفات
-        </button>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">تصدير كل مصروفاتك كملف CSV أو Excel.</p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => exportToCSV(expenses, (id) => catMap[id]?.name || id, (id) => pmMap[id]?.name || id)}
+            className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold px-4 py-2.5 rounded-xl"
+          >
+            <Download size={16} /> تصدير CSV
+          </button>
+          <button
+            onClick={() => exportToExcel(expenses, (id) => catMap[id]?.name || id, (id) => pmMap[id]?.name || id)}
+            className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold px-4 py-2.5 rounded-xl"
+          >
+            <FileSpreadsheet size={16} /> تصدير Excel
+          </button>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/50 rounded-2xl p-6">

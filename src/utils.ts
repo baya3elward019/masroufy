@@ -63,16 +63,21 @@ export function sumExpenses(list: Expense[]) {
   return list.reduce((s, e) => s + e.amount, 0);
 }
 
-export function exportToCSV(expenses: Expense[], categoryNameOf: (id: string) => string, paymentNameOf: (id: string) => string) {
+function buildExportRows(expenses: Expense[], categoryNameOf: (id: string) => string, paymentNameOf: (id: string) => string) {
   const header = ["التاريخ", "التصنيف", "الوصف", "طريقة الدفع", "المبلغ", "ملاحظات"];
   const rows = expenses.map((e) => [
     e.date,
     categoryNameOf(e.categoryId),
     e.description,
     paymentNameOf(e.paymentMethod),
-    String(e.amount),
+    e.amount,
     e.notes,
   ]);
+  return { header, rows };
+}
+
+export function exportToCSV(expenses: Expense[], categoryNameOf: (id: string) => string, paymentNameOf: (id: string) => string) {
+  const { header, rows } = buildExportRows(expenses, categoryNameOf, paymentNameOf);
   const csv = [header, ...rows]
     .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
     .join("\n");
@@ -85,4 +90,15 @@ export function exportToCSV(expenses: Expense[], categoryNameOf: (id: string) =>
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+export async function exportToExcel(expenses: Expense[], categoryNameOf: (id: string) => string, paymentNameOf: (id: string) => string) {
+  const XLSX = await import("xlsx");
+  const { header, rows } = buildExportRows(expenses, categoryNameOf, paymentNameOf);
+  const sheetData = [header, ...rows];
+  const sheet = XLSX.utils.aoa_to_sheet(sheetData);
+  sheet["!cols"] = [{ wch: 12 }, { wch: 14 }, { wch: 26 }, { wch: 16 }, { wch: 12 }, { wch: 26 }];
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, sheet, "المصروفات");
+  XLSX.writeFile(workbook, `masrofy-export-${iso(TODAY)}.xlsx`);
 }

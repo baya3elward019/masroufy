@@ -1,11 +1,57 @@
-import { useMemo, useState } from "react";
-import { Search, Plus, Download } from "lucide-react";
+import { useMemo, useState, useRef, useEffect } from "react";
+import { Search, Plus, Download, ChevronDown, FileSpreadsheet, FileText, SlidersHorizontal } from "lucide-react";
 import { Category, Expense, PaymentMethod } from "../types";
 import { TODAY } from "../data";
 import { fmtMoney, inRange, iso, startOfWeek } from "../utils";
-import { exportToCSV } from "../utils";
+import { exportToCSV, exportToExcel } from "../utils";
 import { ExpenseRow } from "../components/ExpenseRow";
 import { EmptyState } from "../components/Basics";
+
+function ExportMenu({ onCSV, onExcel }: { onCSV: () => void; onExcel: () => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="inline-flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm font-semibold px-4 py-2.5 rounded-xl"
+      >
+        <Download size={16} /> تصدير <ChevronDown size={14} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="absolute left-0 mt-2 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg py-1.5 z-20 animate-fade-in">
+          <button
+            onClick={() => {
+              onCSV();
+              setOpen(false);
+            }}
+            className="w-full flex items-center gap-2 px-3.5 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+          >
+            <FileText size={15} className="text-slate-400" /> ملف CSV
+          </button>
+          <button
+            onClick={() => {
+              onExcel();
+              setOpen(false);
+            }}
+            className="w-full flex items-center gap-2 px-3.5 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+          >
+            <FileSpreadsheet size={15} className="text-slate-400" /> ملف Excel
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function ExpensesPage({
   expenses,
@@ -26,6 +72,9 @@ export function ExpensesPage({
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [paymentFilter, setPaymentFilter] = useState("all");
   const [quickRange, setQuickRange] = useState("all");
+  const [minAmount, setMinAmount] = useState("");
+  const [maxAmount, setMaxAmount] = useState("");
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
 
   const catMap = Object.fromEntries(categories.map((c) => [c.id, c]));
   const pmMap = Object.fromEntries(paymentMethods.map((p) => [p.id, p]));
@@ -44,8 +93,12 @@ export function ExpensesPage({
         return true;
       })
       .filter((e) => (search ? (e.description + " " + (catMap[e.categoryId]?.name || "")).includes(search) : true))
+      .filter((e) => (minAmount ? e.amount >= parseFloat(minAmount) : true))
+      .filter((e) => (maxAmount ? e.amount <= parseFloat(maxAmount) : true))
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
-  }, [expenses, search, categoryFilter, paymentFilter, quickRange]);
+  }, [expenses, search, categoryFilter, paymentFilter, quickRange, minAmount, maxAmount]);
+
+  const amountFilterActive = minAmount !== "" || maxAmount !== "";
 
   const total = filtered.reduce((s, e) => s + e.amount, 0);
 
@@ -54,12 +107,10 @@ export function ExpensesPage({
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">المصروفات</h1>
         <div className="hidden md:flex items-center gap-2">
-          <button
-            onClick={() => exportToCSV(filtered, (id) => catMap[id]?.name || id, (id) => pmMap[id]?.name || id)}
-            className="inline-flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm font-semibold px-4 py-2.5 rounded-xl"
-          >
-            <Download size={16} /> تصدير CSV
-          </button>
+          <ExportMenu
+            onCSV={() => exportToCSV(filtered, (id) => catMap[id]?.name || id, (id) => pmMap[id]?.name || id)}
+            onExcel={() => exportToExcel(filtered, (id) => catMap[id]?.name || id, (id) => pmMap[id]?.name || id)}
+          />
           <button
             onClick={onAdd}
             className="inline-flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-800 active:scale-[0.98] transition-all text-white text-sm font-semibold px-4 py-2.5 rounded-xl"
@@ -104,7 +155,51 @@ export function ExpensesPage({
               </option>
             ))}
           </select>
+          <button
+            onClick={() => setShowMoreFilters((s) => !s)}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-sm font-medium border transition-colors ${
+              amountFilterActive
+                ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400"
+                : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+            }`}
+          >
+            <SlidersHorizontal size={15} /> نطاق المبلغ
+          </button>
         </div>
+
+        {showMoreFilters && (
+          <div className="flex items-center gap-3 flex-wrap bg-slate-50 dark:bg-slate-800/60 rounded-xl px-3 py-3 animate-fade-in">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">من</span>
+            <input
+              inputMode="decimal"
+              value={minAmount}
+              onChange={(e) => setMinAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+              placeholder="0"
+              className="w-24 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-slate-800 dark:text-slate-100 outline-none tabular-nums"
+            />
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">إلى</span>
+            <input
+              inputMode="decimal"
+              value={maxAmount}
+              onChange={(e) => setMaxAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+              placeholder="بلا حد"
+              className="w-24 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-slate-800 dark:text-slate-100 outline-none tabular-nums"
+            />
+            <span className="text-slate-400 text-xs">ج.م</span>
+            {amountFilterActive && (
+              <button
+                onClick={() => {
+                  setMinAmount("");
+                  setMaxAmount("");
+                }}
+                className="text-xs font-semibold text-rose-600 dark:text-rose-400 hover:underline mr-auto"
+              >
+                مسح النطاق
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="flex items-center gap-2 flex-wrap">
           {[
             ["all", "الكل"],
@@ -128,12 +223,18 @@ export function ExpensesPage({
         </div>
       </div>
 
-      <button
-        onClick={onAdd}
-        className="md:hidden inline-flex items-center justify-center gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold px-4 py-2.5 rounded-xl"
-      >
-        <Plus size={16} /> إضافة مصروف
-      </button>
+      <div className="md:hidden flex items-center gap-2">
+        <button
+          onClick={onAdd}
+          className="flex-1 inline-flex items-center justify-center gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold px-4 py-2.5 rounded-xl"
+        >
+          <Plus size={16} /> إضافة مصروف
+        </button>
+        <ExportMenu
+          onCSV={() => exportToCSV(filtered, (id) => catMap[id]?.name || id, (id) => pmMap[id]?.name || id)}
+          onExcel={() => exportToExcel(filtered, (id) => catMap[id]?.name || id, (id) => pmMap[id]?.name || id)}
+        />
+      </div>
 
       {filtered.length === 0 ? (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
