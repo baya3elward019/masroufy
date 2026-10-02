@@ -1,7 +1,7 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { Search, Plus, Download, ChevronDown, FileSpreadsheet, FileText, SlidersHorizontal } from "lucide-react";
 import { Category, Expense, PaymentMethod } from "../types";
-import { TODAY } from "../data";
+import { CURRENCY, TODAY } from "../data";
 import { fmtMoney, inRange, iso, startOfWeek } from "../utils";
 import { exportToCSV, exportToExcel } from "../utils";
 import { ExpenseRow } from "../components/ExpenseRow";
@@ -185,7 +185,7 @@ export function ExpensesPage({
               placeholder="بلا حد"
               className="w-24 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-slate-800 dark:text-slate-100 outline-none tabular-nums"
             />
-            <span className="text-slate-400 text-xs">ج.م</span>
+            <span className="text-slate-400 text-xs">{CURRENCY.symbol}</span>
             {amountFilterActive && (
               <button
                 onClick={() => {

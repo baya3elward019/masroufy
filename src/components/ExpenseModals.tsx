@@ -2,7 +2,7 @@ import { useState } from "react";
 import { X, Trash2 } from "lucide-react";
 import { Category, Expense, PaymentMethod } from "../types";
 import { iso } from "../utils";
-import { TODAY, uid } from "../data";
+import { CURRENCY, TODAY, uid } from "../data";
 import { IconBadge } from "./Basics";
 import { COLOR_OPTIONS } from "../colors";
 import { ICONS } from "../icons";
@@ -76,10 +76,10 @@ export function ExpenseFormModal({
                   setError("");
                   setAmount(e.target.value.replace(/[^0-9.]/g, ""));
                 }}
-                placeholder="0.00"
+                placeholder="0.000"
                 className="flex-1 bg-transparent outline-none text-3xl font-bold text-slate-900 dark:text-slate-100 tabular-nums w-full"
               />
-              <span className="text-slate-400 font-semibold">ج.م</span>
+              <span className="text-slate-400 font-semibold">{CURRENCY.symbol}</span>
             </div>
             {error && <p className="text-rose-600 dark:text-rose-400 text-xs mt-1.5">{error}</p>}
           </div>

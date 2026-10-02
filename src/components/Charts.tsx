@@ -3,6 +3,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGri
 import { Category, Expense, PaymentMethod } from "../types";
 import { fmtMoney, startOfWeek } from "../utils";
 import { COLOR_OPTIONS } from "../colors";
+import { CURRENCY } from "../data";
 import { EmptyState } from "./Basics";
 
 export function SpendingChart({
@@ -23,13 +24,13 @@ export function SpendingChart({
       let key: string, label: string;
       if (granularity === "daily") {
         key = e.date;
-        label = new Date(e.date + "T00:00:00").toLocaleDateString("ar-EG", { day: "numeric", month: "short" });
+        label = new Date(e.date + "T00:00:00").toLocaleDateString(CURRENCY.locale, { day: "numeric", month: "short" });
       } else if (granularity === "weekly") {
         key = startOfWeek(e.date);
-        label = "أسبوع " + new Date(key + "T00:00:00").toLocaleDateString("ar-EG", { day: "numeric", month: "short" });
+        label = "أسبوع " + new Date(key + "T00:00:00").toLocaleDateString(CURRENCY.locale, { day: "numeric", month: "short" });
       } else {
         key = e.date.slice(0, 7);
-        label = new Date(e.date + "T00:00:00").toLocaleDateString("ar-EG", { month: "long", year: "numeric" });
+        label = new Date(e.date + "T00:00:00").toLocaleDateString(CURRENCY.locale, { month: "long", year: "numeric" });
       }
       if (!buckets[key]) {
         buckets[key] = { key, label, total: 0 };
