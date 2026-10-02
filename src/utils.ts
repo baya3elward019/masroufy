@@ -1,18 +1,21 @@
-import { TODAY } from "./data";
+import { CURRENCY, TODAY } from "./data";
 import { Expense } from "./types";
 
 export function iso(d: Date) {
-  return d.toISOString().slice(0, 10);
+  // Local date (toISOString is UTC and gives yesterday's date just after midnight in UTC+2).
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
 export function fmtMoney(n: number) {
-  const rounded = Math.round(n * 100) / 100;
+  // The dinar is divided into 1000 dirhams, so keep up to 3 decimals.
+  const rounded = Math.round(n * 1000) / 1000;
   const isWhole = Number.isInteger(rounded);
   return (
     rounded.toLocaleString("en-US", {
       minimumFractionDigits: isWhole ? 0 : 2,
-      maximumFractionDigits: 2,
-    }) + " ج.م"
+      maximumFractionDigits: 3,
+    }) + " " + CURRENCY.symbol
   );
 }
 
@@ -21,12 +24,12 @@ export function fmtDateLabel(dateStr: string) {
   const diffDays = Math.round((new Date(iso(TODAY) + "T00:00:00").getTime() - d.getTime()) / 86400000);
   if (diffDays === 0) return "اليوم";
   if (diffDays === 1) return "أمس";
-  return d.toLocaleDateString("ar-EG", { day: "numeric", month: "short" });
+  return d.toLocaleDateString(CURRENCY.locale, { day: "numeric", month: "short" });
 }
 
 export function fmtFullDate(dateStr: string) {
   const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("ar-EG", { day: "numeric", month: "long", year: "numeric" });
+  return d.toLocaleDateString(CURRENCY.locale, { day: "numeric", month: "long", year: "numeric" });
 }
 
 export function fmtTime(t: string) {

@@ -73,7 +73,7 @@ export function SettingsPage({
           disabled
           className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none opacity-70"
         >
-          <option>جنيه مصري (EGP)</option>
+          <option>دينار ليبي (LYD)</option>
         </select>
         <p className="text-xs text-slate-400 mt-2">دعم عملات إضافية سيتوفر قريبًا.</p>
       </div>

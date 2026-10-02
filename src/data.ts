@@ -20,7 +20,21 @@ export const DEFAULT_PAYMENT_METHODS: PaymentMethod[] = [
 
 export const DEFAULT_MONTHLY_BUDGET = 10000;
 
-export const TODAY = new Date("2026-08-24T18:00:00");
+export const CURRENCY = { code: "LYD", symbol: "د.ل", name: "دينار ليبي", locale: "ar-LY" } as const;
+
+export const TODAY = new Date();
+
+// The demo rows below were written around this date; they get shifted so they always end "today".
+const SEED_ANCHOR = "2026-08-24";
+
+function shiftSeedDate(dateStr: string) {
+  const anchor = new Date(SEED_ANCHOR + "T00:00:00");
+  const today = new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate());
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + Math.round((today.getTime() - anchor.getTime()) / 86400000));
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
 
 export function uid() {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
@@ -60,7 +74,9 @@ export function seedExpenses(): Expense[] {
     ["2026-08-24", "14:30", "food", "cash", "غداء", "مطعم", 250],
     ["2026-08-24", "09:10", "transport", "wallet", "أوبر للشغل", "", 85],
   ];
-  return rows.map(([date, time, categoryId, paymentMethod, description, notes, amount]) => ({
+  return rows.map(([rawDate, time, categoryId, paymentMethod, description, notes, amount]) => {
+    const date = shiftSeedDate(rawDate);
+    return {
     id: uid(),
     date,
     time,
@@ -70,5 +86,6 @@ export function seedExpenses(): Expense[] {
     notes,
     amount,
     createdAt: `${date}T${time}:00`,
-  }));
+    };
+  });
 }

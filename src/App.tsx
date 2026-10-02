@@ -31,7 +31,7 @@ export default function App() {
 
   useEffect(() => {
     const stored = loadData();
-    if (stored && stored.expenses && stored.expenses.length) {
+    if (stored && Array.isArray(stored.expenses)) {
       setExpenses(stored.expenses);
       setCategories(stored.categories && stored.categories.length ? stored.categories : DEFAULT_CATEGORIES);
       setMonthlyBudget(stored.monthlyBudget ?? DEFAULT_MONTHLY_BUDGET);
