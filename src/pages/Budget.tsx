@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Pencil, Check, X, AlertTriangle } from "lucide-react";
-import { Category, CategoryBudget, Expense } from "../types";
-import { TODAY } from "../data";
-import { fmtMoney, inRange, iso } from "../utils";
+import { Pencil, Check, X, AlertTriangle, Plus, Trash2 } from "lucide-react";
+import { BudgetExtra, Category, CategoryBudget, Expense } from "../types";
+import { TODAY, uid } from "../data";
+import { fmtDateLabel, fmtMoney, inRange, iso } from "../utils";
 import { BudgetGauge, ThinProgress } from "../components/Stats";
 import { IconBadge } from "../components/Basics";
 import { COLOR_OPTIONS } from "../colors";
@@ -12,6 +12,9 @@ export function BudgetPage({
   categories,
   monthlyBudget,
   categoryBudgets,
+  extras,
+  onAddExtra,
+  onDeleteExtra,
   onUpdateMonthlyBudget,
   onUpdateCategoryBudget,
 }: {
@@ -19,6 +22,9 @@ export function BudgetPage({
   categories: Category[];
   monthlyBudget: number;
   categoryBudgets: CategoryBudget[];
+  extras: BudgetExtra[];
+  onAddExtra: (x: BudgetExtra) => void;
+  onDeleteExtra: (id: string) => void;
   onUpdateMonthlyBudget: (amount: number) => void;
   onUpdateCategoryBudget: (categoryId: string, amount: number) => void;
 }) {
@@ -29,6 +35,18 @@ export function BudgetPage({
 
   const [editingBudget, setEditingBudget] = useState(false);
   const [budgetDraft, setBudgetDraft] = useState(String(monthlyBudget));
+  const [extraAmount, setExtraAmount] = useState("");
+  const [extraNote, setExtraNote] = useState("");
+  const extrasTotal = extras.reduce((s, x) => s + x.amount, 0);
+  const totalBudget = monthlyBudget + extrasTotal;
+
+  const addExtra = () => {
+    const n = parseFloat(extraAmount);
+    if (isNaN(n) || n <= 0) return;
+    onAddExtra({ id: uid(), month: todayStr.slice(0, 7), amount: n, note: extraNote.trim(), date: todayStr });
+    setExtraAmount("");
+    setExtraNote("");
+  };
 
   const catSpent = (id: string) => monthExpenses.filter((e) => e.categoryId === id).reduce((s, e) => s + e.amount, 0);
   const budgetFor = (id: string) => categoryBudgets.find((b) => b.categoryId === id)?.amount ?? 0;
@@ -73,7 +91,59 @@ export function BudgetPage({
             </div>
           )}
         </div>
-        <BudgetGauge spent={monthTotal} budget={monthlyBudget} />
+        <BudgetGauge spent={monthTotal} budget={totalBudget} />
+        {extrasTotal > 0 && (
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-3 tabular-nums">
+            الأساسية {fmtMoney(monthlyBudget)} + دخل إضافي {fmtMoney(extrasTotal)} = {fmtMoney(totalBudget)}
+          </p>
+        )}
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
+        <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">دخل إضافي هذا الشهر</h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">جالك شغل إضافي؟ ضيفه هنا وهيزيد على ميزانية الشهر الحالي بس، والميزانية الأساسية تفضل زي ما هي.</p>
+        <form
+          className="flex flex-wrap items-center gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            addExtra();
+          }}
+        >
+          <input
+            inputMode="decimal"
+            value={extraAmount}
+            onChange={(e) => setExtraAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+            placeholder="المبلغ"
+            aria-label="مبلغ الدخل الإضافي"
+            className="w-28 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100 outline-none tabular-nums"
+          />
+          <input
+            value={extraNote}
+            onChange={(e) => setExtraNote(e.target.value)}
+            placeholder="الوصف (اختياري) — مثلًا: شغل إضافي"
+            aria-label="وصف الدخل الإضافي"
+            maxLength={60}
+            className="flex-1 min-w-[10rem] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100 outline-none"
+          />
+          <button type="submit" className="inline-flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold px-4 py-2.5 rounded-xl">
+            <Plus size={16} /> إضافة
+          </button>
+        </form>
+        {extras.length > 0 && (
+          <ul className="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
+            {extras.map((x) => (
+              <li key={x.id} className="flex items-center gap-3 py-2.5 text-sm">
+                <span className="flex-1 min-w-0 truncate text-slate-700 dark:text-slate-300">
+                  {x.note || "دخل إضافي"} <span className="text-xs text-slate-400">· {fmtDateLabel(x.date)}</span>
+                </span>
+                <span className="font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">+{fmtMoney(x.amount)}</span>
+                <button onClick={() => onDeleteExtra(x.id)} aria-label="حذف" className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40">
+                  <Trash2 size={15} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">

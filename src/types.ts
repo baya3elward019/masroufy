@@ -29,11 +29,20 @@ export interface CategoryBudget {
   amount: number;
 }
 
+export interface BudgetExtra {
+  id: string;
+  month: string; // YYYY-MM the extra income applies to
+  amount: number;
+  note: string;
+  date: string; // YYYY-MM-DD it was added
+}
+
 export interface AppData {
   expenses: Expense[];
   categories: Category[];
   monthlyBudget: number;
   categoryBudgets: CategoryBudget[];
+  budgetExtras: BudgetExtra[];
   theme: "light" | "dark" | "system";
 }
 

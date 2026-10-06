@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Sun, Moon, Monitor, Download, RotateCcw, TrendingUp, Tag, ChevronLeft, FileSpreadsheet } from "lucide-react";
+import { Sun, Moon, Monitor, Download, RotateCcw, TrendingUp, Tag, ChevronLeft, FileSpreadsheet, FileDown } from "lucide-react";
 import { Expense, View } from "../types";
 import { exportToCSV, exportToExcel } from "../utils";
 import { Category, PaymentMethod } from "../types";
+import { PdfExportModal } from "../components/PdfExport";
 
 export function SettingsPage({
+  budget,
   theme,
   setTheme,
   expenses,
@@ -13,6 +15,7 @@ export function SettingsPage({
   onReset,
   setView,
 }: {
+  budget: number;
   theme: "light" | "dark" | "system";
   setTheme: (t: "light" | "dark" | "system") => void;
   expenses: Expense[];
@@ -22,6 +25,7 @@ export function SettingsPage({
   setView: (v: View) => void;
 }) {
   const [confirmReset, setConfirmReset] = useState(false);
+  const [pdfOpen, setPdfOpen] = useState(false);
   const catMap = Object.fromEntries(categories.map((c) => [c.id, c]));
   const pmMap = Object.fromEntries(paymentMethods.map((p) => [p.id, p]));
 
@@ -80,7 +84,7 @@ export function SettingsPage({
 
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
         <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">تصدير البيانات</h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">تصدير كل مصروفاتك كملف CSV أو Excel.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">تصدير كل مصروفاتك كملف CSV أو Excel أو تقرير PDF باسمك.</p>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => exportToCSV(expenses, (id) => catMap[id]?.name || id, (id) => pmMap[id]?.name || id)}
@@ -94,7 +98,21 @@ export function SettingsPage({
           >
             <FileSpreadsheet size={16} /> تصدير Excel
           </button>
+          <button
+            onClick={() => setPdfOpen(true)}
+            className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold px-4 py-2.5 rounded-xl"
+          >
+            <FileDown size={16} /> تقرير PDF
+          </button>
         </div>
+        <PdfExportModal
+          open={pdfOpen}
+          onClose={() => setPdfOpen(false)}
+          expenses={expenses}
+          budget={budget}
+          categoryNameOf={(id) => catMap[id]?.name || id}
+          paymentNameOf={(id) => pmMap[id]?.name || id}
+        />
       </div>
 
       <div className="bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/50 rounded-2xl p-6">

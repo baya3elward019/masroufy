@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AppData, Category, CategoryBudget, Expense, View } from "./types";
-import { DEFAULT_CATEGORIES, DEFAULT_MONTHLY_BUDGET, DEFAULT_PAYMENT_METHODS, seedExpenses } from "./data";
+import { AppData, BudgetExtra, Category, CategoryBudget, Expense, View } from "./types";
+import { DEFAULT_CATEGORIES, DEFAULT_MONTHLY_BUDGET, DEFAULT_PAYMENT_METHODS, TODAY, seedExpenses } from "./data";
+import { iso } from "./utils";
 import { loadData, saveData } from "./storage";
 import { Sidebar, BottomNav } from "./components/Shell";
 import { Toast, ToastState, SkeletonCard } from "./components/Basics";
@@ -18,6 +19,7 @@ export default function App() {
   const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
   const [monthlyBudget, setMonthlyBudget] = useState(DEFAULT_MONTHLY_BUDGET);
   const [categoryBudgets, setCategoryBudgets] = useState<CategoryBudget[]>([]);
+  const [budgetExtras, setBudgetExtras] = useState<BudgetExtra[]>([]);
   const [theme, setTheme] = useState<"light" | "dark" | "system">("light");
 
   const [view, setView] = useState<View>("dashboard");
@@ -36,6 +38,7 @@ export default function App() {
       setCategories(stored.categories && stored.categories.length ? stored.categories : DEFAULT_CATEGORIES);
       setMonthlyBudget(stored.monthlyBudget ?? DEFAULT_MONTHLY_BUDGET);
       setCategoryBudgets(stored.categoryBudgets || []);
+      setBudgetExtras(stored.budgetExtras || []);
       setTheme(stored.theme || "light");
     } else {
       setExpenses(seedExpenses());
@@ -45,9 +48,9 @@ export default function App() {
 
   useEffect(() => {
     if (loading) return;
-    const data: AppData = { expenses, categories, monthlyBudget, categoryBudgets, theme };
+    const data: AppData = { expenses, categories, monthlyBudget, categoryBudgets, budgetExtras, theme };
     saveData(data);
-  }, [expenses, categories, monthlyBudget, categoryBudgets, theme, loading]);
+  }, [expenses, categories, monthlyBudget, categoryBudgets, budgetExtras, theme, loading]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -114,11 +117,26 @@ export default function App() {
     });
   }, []);
 
+  const currentMonth = iso(TODAY).slice(0, 7);
+  const monthExtras = useMemo(() => budgetExtras.filter((x) => x.month === currentMonth), [budgetExtras, currentMonth]);
+  const effectiveBudget = monthlyBudget + monthExtras.reduce((s, x) => s + x.amount, 0);
+
+  const handleAddBudgetExtra = useCallback((extra: BudgetExtra) => {
+    setBudgetExtras((prev) => [extra, ...prev]);
+    setToast({ type: "success", message: "تمت زيادة ميزانية الشهر" });
+  }, []);
+
+  const handleDeleteBudgetExtra = useCallback((id: string) => {
+    setBudgetExtras((prev) => prev.filter((x) => x.id !== id));
+    setToast({ type: "success", message: "تم حذف الدخل الإضافي" });
+  }, []);
+
   const handleReset = useCallback(() => {
     setExpenses(seedExpenses());
     setCategories(DEFAULT_CATEGORIES);
     setMonthlyBudget(DEFAULT_MONTHLY_BUDGET);
     setCategoryBudgets([]);
+    setBudgetExtras([]);
     setToast({ type: "success", message: "تم إعادة تعيين البيانات" });
   }, []);
 
@@ -138,7 +156,7 @@ export default function App() {
             expenses={expenses}
             categories={categories}
             paymentMethods={paymentMethods}
-            budget={monthlyBudget}
+            budget={effectiveBudget}
             onAdd={() => setModalMode("add")}
             onEdit={(e) => setModalMode(e)}
             onDelete={(e) => setDeleteTarget(e)}
@@ -158,20 +176,23 @@ export default function App() {
             onDelete={(e) => setDeleteTarget(e)}
           />
         ) : view === "reports" ? (
-          <ReportsPage expenses={expenses} categories={categories} paymentMethods={paymentMethods} budget={monthlyBudget} />
+          <ReportsPage expenses={expenses} categories={categories} paymentMethods={paymentMethods} budget={effectiveBudget} />
         ) : view === "budget" ? (
           <BudgetPage
             expenses={expenses}
             categories={categories}
             monthlyBudget={monthlyBudget}
             categoryBudgets={categoryBudgets}
+            extras={monthExtras}
+            onAddExtra={handleAddBudgetExtra}
+            onDeleteExtra={handleDeleteBudgetExtra}
             onUpdateMonthlyBudget={setMonthlyBudget}
             onUpdateCategoryBudget={handleUpdateCategoryBudget}
           />
         ) : view === "categories" ? (
           <CategoriesPage categories={categories} onAdd={handleAddCategory} onUpdate={handleUpdateCategory} onDelete={handleDeleteCategory} />
         ) : (
-          <SettingsPage theme={theme} setTheme={setTheme} expenses={expenses} categories={categories} paymentMethods={paymentMethods} onReset={handleReset} setView={setView} />
+          <SettingsPage budget={effectiveBudget} theme={theme} setTheme={setTheme} expenses={expenses} categories={categories} paymentMethods={paymentMethods} onReset={handleReset} setView={setView} />
         )}
       </main>
 
