@@ -40,13 +40,15 @@ export function Dashboard({
   const todayStr = iso(TODAY);
   const weekStart = startOfWeek(todayStr);
   const monthStart = todayStr.slice(0, 7) + "-01";
-  const prevMonthStart = "2026-07-01";
-  const prevMonthEnd = "2026-07-24";
+  const prevMonthStart = iso(new Date(TODAY.getFullYear(), TODAY.getMonth() - 1, 1));
+  const prevMonthEnd = iso(new Date(TODAY.getFullYear(), TODAY.getMonth(), 0));
+  // Same number of days into last month, so the trend compares like with like.
+  const prevMonthSameDay = prevMonthStart.slice(0, 8) + todayStr.slice(8) > prevMonthEnd ? prevMonthEnd : prevMonthStart.slice(0, 8) + todayStr.slice(8);
 
   const todayTotal = sumExpenses(expenses.filter((e) => e.date === todayStr));
   const weekTotal = sumExpenses(expenses.filter((e) => inRange(e.date, weekStart, todayStr)));
   const monthTotal = sumExpenses(expenses.filter((e) => inRange(e.date, monthStart, todayStr)));
-  const prevMonthTotal = sumExpenses(expenses.filter((e) => inRange(e.date, prevMonthStart, prevMonthEnd)));
+  const prevMonthTotal = sumExpenses(expenses.filter((e) => inRange(e.date, prevMonthStart, prevMonthSameDay)));
   const monthTrend = prevMonthTotal ? ((monthTotal - prevMonthTotal) / prevMonthTotal) * 100 : null;
   const remaining = budget - monthTotal;
 
@@ -58,7 +60,15 @@ export function Dashboard({
   };
   const [from, to] = rangeMap[dateTab] || rangeMap.month;
   const scoped = expenses.filter((e) => inRange(e.date, from, to));
-  const recent = [...expenses].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)).slice(0, 5);
+  const tabs: [string, string][] = [
+    ["day", "اليوم"],
+    ["week", "هذا الأسبوع"],
+    ["month", "هذا الشهر"],
+    ["lastMonth", "الشهر الماضي"],
+  ];
+  const tabLabel = (tabs.find(([v]) => v === dateTab) || tabs[2])[1];
+  const scopedTotal = sumExpenses(scoped);
+  const recent = [...scoped].sort((a, b) => (a.date + a.time < b.date + b.time ? 1 : -1)).slice(0, 5);
 
   return (
     <div className="flex flex-col gap-6 pb-24 md:pb-8">
@@ -68,12 +78,7 @@ export function Dashboard({
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">إليك ملخص مصروفاتك</p>
         </div>
         <div className="inline-flex bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-1 text-sm flex-wrap">
-          {[
-            ["day", "اليوم"],
-            ["week", "هذا الأسبوع"],
-            ["month", "هذا الشهر"],
-            ["lastMonth", "الشهر الماضي"],
-          ].map(([val, label]) => (
+          {tabs.map(([val, label]) => (
             <button
               key={val}
               onClick={() => setDateTab(val)}
@@ -98,10 +103,17 @@ export function Dashboard({
         </div>
       </div>
 
+      <div className="flex items-center justify-between flex-wrap gap-2 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 rounded-2xl px-5 py-3 text-sm">
+        <span className="text-slate-600 dark:text-slate-300">
+          الفترة المعروضة: <b className="text-slate-900 dark:text-slate-100">{tabLabel}</b> · {scoped.length} عملية
+        </span>
+        <span className="font-bold tabular-nums text-emerald-800 dark:text-emerald-300">{fmtMoney(scopedTotal)}</span>
+      </div>
+
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
         <div className="xl:col-span-3 flex flex-col gap-6">
-          <SpendingChart expenses={expenses} granularity={granularity} setGranularity={setGranularity} />
-          <CategoryBreakdown expenses={expenses} categories={categories} />
+          <SpendingChart expenses={scoped} granularity={granularity} setGranularity={setGranularity} title={`المصروفات — ${tabLabel}`} />
+          <CategoryBreakdown expenses={scoped} categories={categories} />
         </div>
         <div className="xl:col-span-2 flex flex-col gap-6">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5">
@@ -110,13 +122,15 @@ export function Dashboard({
           </div>
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-slate-800 dark:text-slate-100">آخر المصروفات</h3>
+              <h3 className="font-semibold text-slate-800 dark:text-slate-100">
+                آخر المصروفات <span className="text-xs font-medium text-slate-400">· {tabLabel}</span>
+              </h3>
               <button onClick={() => setView("expenses")} className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800">
                 عرض كل المصروفات
               </button>
             </div>
             {recent.length === 0 ? (
-              <EmptyState title="لا توجد مصروفات بعد" subtitle="ابدأ بإضافة أول مصروف لك وسنساعدك على متابعة إنفاقك." actionLabel="إضافة مصروف" onAction={onAdd} />
+              <EmptyState title="لا توجد مصروفات في هذه الفترة" subtitle="أضف مصروفًا أو اختر فترة أخرى من الأعلى." actionLabel="إضافة مصروف" onAction={onAdd} />
             ) : (
               <div>
                 {recent.map((e) => (

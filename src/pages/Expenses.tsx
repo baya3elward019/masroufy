@@ -1,13 +1,14 @@
 import { useMemo, useState, useRef, useEffect } from "react";
-import { Search, Plus, Download, ChevronDown, FileSpreadsheet, FileText, SlidersHorizontal } from "lucide-react";
+import { Search, Plus, Download, ChevronDown, FileSpreadsheet, FileText, FileDown, SlidersHorizontal } from "lucide-react";
 import { Category, Expense, PaymentMethod } from "../types";
 import { CURRENCY, TODAY } from "../data";
 import { fmtMoney, inRange, iso, startOfWeek } from "../utils";
 import { exportToCSV, exportToExcel } from "../utils";
 import { ExpenseRow } from "../components/ExpenseRow";
 import { EmptyState } from "../components/Basics";
+import { PdfExportModal } from "../components/PdfExport";
 
-function ExportMenu({ onCSV, onExcel }: { onCSV: () => void; onExcel: () => void }) {
+function ExportMenu({ onCSV, onExcel, onPDF }: { onCSV: () => void; onExcel: () => void; onPDF: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -47,6 +48,15 @@ function ExportMenu({ onCSV, onExcel }: { onCSV: () => void; onExcel: () => void
           >
             <FileSpreadsheet size={15} className="text-slate-400" /> ملف Excel
           </button>
+          <button
+            onClick={() => {
+              onPDF();
+              setOpen(false);
+            }}
+            className="w-full flex items-center gap-2 px-3.5 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+          >
+            <FileDown size={15} className="text-slate-400" /> تقرير PDF
+          </button>
         </div>
       )}
     </div>
@@ -75,6 +85,7 @@ export function ExpensesPage({
   const [minAmount, setMinAmount] = useState("");
   const [maxAmount, setMaxAmount] = useState("");
   const [showMoreFilters, setShowMoreFilters] = useState(false);
+  const [pdfOpen, setPdfOpen] = useState(false);
 
   const catMap = Object.fromEntries(categories.map((c) => [c.id, c]));
   const pmMap = Object.fromEntries(paymentMethods.map((p) => [p.id, p]));
@@ -104,12 +115,20 @@ export function ExpensesPage({
 
   return (
     <div className="flex flex-col gap-5 pb-24 md:pb-8">
+      <PdfExportModal
+        open={pdfOpen}
+        onClose={() => setPdfOpen(false)}
+        expenses={filtered}
+        categoryNameOf={(id) => catMap[id]?.name || id}
+        paymentNameOf={(id) => pmMap[id]?.name || id}
+      />
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">المصروفات</h1>
         <div className="hidden md:flex items-center gap-2">
           <ExportMenu
             onCSV={() => exportToCSV(filtered, (id) => catMap[id]?.name || id, (id) => pmMap[id]?.name || id)}
             onExcel={() => exportToExcel(filtered, (id) => catMap[id]?.name || id, (id) => pmMap[id]?.name || id)}
+            onPDF={() => setPdfOpen(true)}
           />
           <button
             onClick={onAdd}
@@ -233,6 +252,7 @@ export function ExpensesPage({
         <ExportMenu
           onCSV={() => exportToCSV(filtered, (id) => catMap[id]?.name || id, (id) => pmMap[id]?.name || id)}
           onExcel={() => exportToExcel(filtered, (id) => catMap[id]?.name || id, (id) => pmMap[id]?.name || id)}
+            onPDF={() => setPdfOpen(true)}
         />
       </div>
 
